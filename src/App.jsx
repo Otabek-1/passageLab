@@ -182,22 +182,36 @@ export default function App() {
         text,
         x: rect.left + rect.width / 2,
         y: rect.top + window.scrollY - 72,
+        isActive: true,
       })
     }
 
     const handleHighlight = (color) => {
       if (!selectionMenu?.text) return
+      const normalizedText = selectionMenu.text.trim()
 
       setHighlights((previous) => {
         const next = [...previous]
-        const existingIndex = next.findIndex((item) => item.text === selectionMenu.text)
+        const existingIndex = next.findIndex((item) => item.text === normalizedText)
         if (existingIndex >= 0) {
           next[existingIndex] = { ...next[existingIndex], color }
         } else {
-          next.push({ text: selectionMenu.text, color })
+          next.push({ text: normalizedText, color })
         }
         return next
       })
+      setSelectionMenu(null)
+    }
+
+    const handleRemoveHighlight = () => {
+      if (!selectionMenu?.text) return
+      const normalizedText = selectionMenu.text.trim()
+      setHighlights((previous) => previous.filter((item) => item.text !== normalizedText))
+      setSelectionMenu(null)
+    }
+
+    const handleClearHighlights = () => {
+      setHighlights([])
       setSelectionMenu(null)
     }
 
@@ -335,6 +349,8 @@ export default function App() {
           onSetTheme={setTheme}
           onToggleFocusMode={() => setFocusMode((value) => !value)}
           onHighlight={handleHighlight}
+          onRemoveHighlight={handleRemoveHighlight}
+          onClearHighlights={handleClearHighlights}
           onCopy={handleCopy}
           onDictionary={handleDictionary}
           onCloseDictionary={() => setDictionary(null)}

@@ -18,6 +18,8 @@ export default function ReadingPage({
   onSetTheme,
   onToggleFocusMode,
   onHighlight,
+  onRemoveHighlight,
+  onClearHighlights,
   onCopy,
   onDictionary,
   onCloseDictionary,
@@ -37,40 +39,70 @@ export default function ReadingPage({
 
   const analysis = currentPassage.analysis || {}
 
-  const renderSentence = (sentence, index) => {
-    const trimmed = sentence.trim()
-    const highlight = highlights.find((item) => item.text === trimmed)
+  const renderParagraph = (paragraph, index) => {
+    const normalizedParagraph = paragraph
+    const sortedHighlights = [...highlights].sort((a, b) => b.text.length - a.text.length)
+    let cursor = 0
+    const nodes = []
+
+    while (cursor < normalizedParagraph.length) {
+      let nextMatch = null
+      let nextIndex = normalizedParagraph.length
+
+      for (const item of sortedHighlights) {
+        const searchIndex = normalizedParagraph.indexOf(item.text, cursor)
+        if (searchIndex >= 0 && searchIndex < nextIndex) {
+          nextMatch = item
+          nextIndex = searchIndex
+        }
+      }
+
+      if (!nextMatch) {
+        nodes.push(normalizedParagraph.slice(cursor))
+        break
+      }
+
+      if (nextIndex > cursor) {
+        nodes.push(normalizedParagraph.slice(cursor, nextIndex))
+      }
+
+      nodes.push(
+        <span
+          key={`${nextMatch.text}-${index}-${nextIndex}`}
+          className="rounded-[3px] px-1 py-0.5"
+          style={{ backgroundColor: nextMatch.color, color: '#111111', opacity: 0.95 }}
+        >
+          {nextMatch.text}
+        </span>
+      )
+
+      cursor = nextIndex + nextMatch.text.length
+    }
 
     return (
       <p
-        key={`${trimmed}-${index}`}
-        className="mb-4 text-[17px] leading-8 text-[#2f2f2f]"
+        key={`${paragraph.slice(0, 20)}-${index}`}
+        className="mb-6 text-[17px] leading-8 text-[#2f2f2f]"
         style={{ fontSize: `${fontSize}px` }}
       >
-        {highlight ? (
-          <span className="rounded-[2px] px-0.5" style={{ backgroundColor: highlight.color }}>
-            {trimmed}
-          </span>
-        ) : (
-          trimmed
-        )}
+        {nodes}
       </p>
     )
   }
 
   return (
     <div className={`min-h-screen ${themeClasses[theme]} text-[#222222]`}>
-      <header data-aos="fade-down" className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 md:px-8 lg:px-10">
-        <a href="#" className="header-text text-[1.6rem] tracking-[0.18em] text-[#1f2937]">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 md:px-8 lg:px-10">
+        <button type="button" className="header-text text-[1.6rem] tracking-[0.18em] text-[#1f2937]" onClick={onBack}>
           PassageLab
-        </a>
+        </button>
         <div className="flex items-center gap-4 text-sm text-[#6B7280]">
           <button type="button" onClick={onBack} className="transition hover:text-[#222222]">
             ← Back to {activeCollection}
           </button>
-          <a href="#" className="transition hover:text-[#222222]">
+          <button type="button" className="transition hover:text-[#222222]">
             Search
-          </a>
+          </button>
         </div>
       </header>
 
@@ -170,7 +202,7 @@ export default function ReadingPage({
           </div>
         )}
 
-        <article data-aos="fade-up" className={`mx-auto w-full rounded-[20px] border border-[#d9d2c6] bg-white/90 px-6 py-8 shadow-[0_1px_0_rgba(34,34,34,0.03)] sm:px-8 lg:px-10 ${focusMode ? 'max-w-[760px]' : 'max-w-[740px]'}`}>
+        <article className={`mx-auto w-full rounded-[20px] border border-[#d9d2c6] bg-white/90 px-6 py-8 shadow-[0_1px_0_rgba(34,34,34,0.03)] sm:px-8 lg:px-10 ${focusMode ? 'max-w-[760px]' : 'max-w-[740px]'}`}>
           <div className="mb-8 border-b border-[#e7e0d6] pb-6">
             <h1 className={`header-text text-3xl text-[#1f2937] sm:text-4xl ${textClasses[fontFamily]}`}>{currentPassage.title}</h1>
             <p className="mt-3 text-sm uppercase tracking-[0.24em] text-[#6B7280]">
@@ -181,23 +213,27 @@ export default function ReadingPage({
           <div
             className={`select-text ${textClasses[fontFamily]}`}
             onMouseUp={onSelection}
-            onMouseLeave={onSelectionLeave}
           >
-            {currentPassage.body.map((paragraph, index) => (
-              <div key={`${paragraph.slice(0, 10)}-${index}`} className="mb-4">
-                {paragraph.split(/(?<=[.!?])\s+/).map((sentence, sentenceIndex) => renderSentence(sentence, sentenceIndex))}
-              </div>
-            ))}
+            {currentPassage.body.map((paragraph, index) => renderParagraph(paragraph, index))}
           </div>
         </article>
 
         {selectionMenu && (
           <div
-            className="fixed z-20 flex min-w-[180px] flex-col rounded-[12px] border border-[#d9d2c6] bg-[#fcfaf7] p-2 shadow-[0_4px_12px_rgba(34,34,34,0.08)]"
+            className="fixed z-20 flex min-w-[200px] flex-col rounded-[12px] border border-[#d9d2c6] bg-[#fcfaf7] p-2 shadow-[0_4px_12px_rgba(34,34,34,0.08)]"
             style={{ top: `${selectionMenu.y}px`, left: `${selectionMenu.x}px`, transform: 'translate(-50%, -100%)' }}
           >
-            <button type="button" onClick={() => onHighlight('#f7e58a')} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
+            <button type="button" onClick={() => onHighlight('rgba(247, 229, 138, 0.85)')} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
               Highlight
+            </button>
+            <button type="button" onClick={() => onHighlight('rgba(171, 255, 181, 0.65)')} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
+              Soft Green
+            </button>
+            <button type="button" onClick={() => onHighlight('rgba(186, 225, 255, 0.75)')} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
+              Soft Blue
+            </button>
+            <button type="button" onClick={onRemoveHighlight} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
+              Remove highlight
             </button>
             <button type="button" onClick={onCopy} className="rounded-[8px] px-3 py-2 text-left text-sm text-[#222222] transition hover:bg-white">
               Copy
@@ -207,6 +243,12 @@ export default function ReadingPage({
             </button>
           </div>
         )}
+        <div className="mt-6 flex flex-wrap gap-2 text-sm text-[#6B7280]">
+          <button type="button" onClick={onClearHighlights} className="rounded-full border border-[#d9d2c6] bg-white px-3 py-1 transition hover:border-[#24332b] hover:text-[#24332b]">
+            Clear all highlights
+          </button>
+          <span className="text-xs text-[#8b8b8b]">Select a phrase to highlight, copy, or define it.</span>
+        </div>
 
         {dictionary && (
           <div className="mx-auto mt-6 w-full max-w-[740px] rounded-[12px] border border-[#d9d2c6] bg-white p-5 shadow-[0_1px_0_rgba(34,34,34,0.03)]">
@@ -244,7 +286,7 @@ export default function ReadingPage({
           </div>
         )}
 
-        <section data-aos="fade-up" className="mx-auto mt-10 w-full max-w-[740px] rounded-[20px] border border-[#d9d2c6] bg-[#fcfaf7] p-6 shadow-[0_1px_0_rgba(34,34,34,0.04)] sm:p-8">
+        <section className="mx-auto mt-10 w-full max-w-[740px] rounded-[20px] border border-[#d9d2c6] bg-[#fcfaf7] p-6 shadow-[0_1px_0_rgba(34,34,34,0.04)] sm:p-8">
           <div className="space-y-3">
             {[
               analysis.mainIdea && {
