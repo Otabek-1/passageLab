@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --header-font-family: 'Libre Baskerville', Georgia, serif;
+  --body-font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #222222;
+  background-color: #F8F6F2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--body-font-family);
+  background-color: #F8F6F2;
+  color: #222222;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.header-text {
+  font-family: var(--header-font-family);
+}
+
+.body-text {
+  font-family: var(--body-font-family);
+}
